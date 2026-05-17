@@ -1,6 +1,6 @@
 # SecureAuth — Secure User Authentication System
 
-A full-featured authentication system built with Python/Flask.
+A full-featured authentication system built with Python / Flask, ready for local development and cloud deployment on Render.
 
 ## Features
 
@@ -8,62 +8,133 @@ A full-featured authentication system built with Python/Flask.
 |---|---|
 | **Registration** | Username, email, password with real-time strength checker |
 | **Password strength** | 5-criteria checker: length, uppercase, lowercase, digits, special chars |
-| **Password hashing** | bcrypt with cost factor 12 (salt embedded) |
+| **Password hashing** | bcrypt with cost factor 12 (unique salt per password) |
 | **Brute-force protection** | 5 failed attempts → 15-minute account lockout |
 | **Two-Factor Auth (2FA)** | 6-digit OTP sent by email, expires in 10 minutes |
-| **Admin panel** | User management, unlock accounts, view all security logs |
-| **Security logging** | Every event (login, fail, lock, OTP, logout, register) is persisted |
+| **Admin panel** | User management, unlock accounts, full security event log |
+| **Security logging** | Every event persisted: login, fail, lock, OTP, logout, register |
 
 ---
 
-## Quick Start
+## Run Locally
 
-### 1. Install Python
-Download from https://www.python.org/downloads/ (Python 3.10+).
-Make sure to check **"Add Python to PATH"** during installation.
+### 1. Install Python 3.10+
+Download from https://www.python.org/downloads/  
+**Check "Add Python to PATH"** during installation.
 
-### 2. Install dependencies
-Open a terminal in this folder and run:
+### 2. Clone / download the project
+```
+cd "C:\Users\dell\Desktop\INSA PROGECT"
+```
+
+### 3. (Recommended) Create a virtual environment
+```
+python -m venv venv
+venv\Scripts\activate
+```
+
+### 4. Install dependencies
 ```
 pip install -r requirements.txt
 ```
 
-### 3. Configure email (optional but recommended)
-Set environment variables before running:
+### 5. Set environment variables (optional — for real email)
 ```
 set MAIL_USERNAME=your@gmail.com
 set MAIL_PASSWORD=your-app-password
 set MAIL_DEFAULT_SENDER=your@gmail.com
 ```
-> For Gmail, use an **App Password** (not your regular password).
-> If email is not configured, the OTP will be shown in a flash message on screen (dev mode).
+> Use a Gmail **App Password**, not your regular password.  
+> Without this, the OTP is shown on-screen in a flash message (dev mode).
 
-### 4. Create the admin user
+### 6. Create the admin user
 ```
 python seed_admin.py
 ```
-Default admin credentials:
-- Username: `admin`
-- Password: `Admin@1234!`
 
-### 5. Run the application
+### 7. Start the development server
 ```
 python app.py
 ```
-Open http://localhost:5000 in your browser.
+Open http://localhost:5000
+
+### Default admin credentials
+| Field | Value |
+|---|---|
+| Username | `admin` |
+| Password | `Admin@1234!` |
+
+> Change this password immediately after first login.
+
+---
+
+## Deploy on Render
+
+### Prerequisites
+- A free account at https://render.com
+- Your project pushed to a GitHub repository
+
+### Step-by-step
+
+**1. Push to GitHub**
+```
+git init
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
+git push -u origin main
+```
+
+**2. Create a new Web Service on Render**
+- Go to https://dashboard.render.com → **New → Web Service**
+- Connect your GitHub repo
+- Render auto-detects `render.yaml` — or fill in manually:
+
+| Field | Value |
+|---|---|
+| Runtime | Python |
+| Build Command | `pip install -r requirements.txt` |
+| Start Command | `gunicorn app:app` |
+
+**3. Add environment variables** in the Render dashboard → Environment tab:
+
+| Key | Value |
+|---|---|
+| `SECRET_KEY` | A long random string (use Render's "Generate" button) |
+| `FLASK_DEBUG` | `false` |
+| `MAIL_USERNAME` | your Gmail address |
+| `MAIL_PASSWORD` | your Gmail App Password |
+| `MAIL_DEFAULT_SENDER` | your Gmail address |
+
+**4. (Optional) Add a PostgreSQL database**
+- Render dashboard → **New → PostgreSQL**
+- Link it to your web service — Render sets `DATABASE_URL` automatically
+- The app reads `DATABASE_URL` and uses it instead of SQLite
+
+**5. Deploy**
+- Click **Deploy** — Render installs dependencies and starts Gunicorn
+- Your app will be live at `https://your-service-name.onrender.com`
+
+**6. Seed the admin user on Render**
+- Go to your service → **Shell** tab
+- Run: `python seed_admin.py`
 
 ---
 
 ## Project Structure
 
 ```
-INSA PROGECT/
-├── app.py              # Application factory & entry point
-├── config.py           # All configuration (timeouts, limits, SMTP, etc.)
+.
+├── app.py              # App factory + module-level app variable for Gunicorn
+├── config.py           # All configuration (reads from environment variables)
 ├── extensions.py       # Flask extension instances
 ├── models.py           # User and LoginLog database models
 ├── seed_admin.py       # One-time admin user creation script
-├── requirements.txt    # Python dependencies
+├── requirements.txt    # Pinned Python dependencies
+├── Procfile            # Gunicorn start command (web: gunicorn app:app)
+├── render.yaml         # Render deployment config
+├── .gitignore          # Excludes *.db, .env, __pycache__, venv/
 │
 ├── routes/
 │   ├── auth.py         # Register, login, OTP verify, logout
@@ -76,62 +147,42 @@ INSA PROGECT/
 │   └── logging.py      # Security event logger
 │
 ├── templates/
-│   ├── base.html       # Shared layout (navbar, flash messages)
-│   ├── index.html      # User dashboard
-│   ├── login.html      # Login form
-│   ├── register.html   # Registration form with live strength meter
-│   ├── verify_otp.html # OTP entry form
+│   ├── base.html
+│   ├── index.html
+│   ├── login.html
+│   ├── register.html
+│   ├── verify_otp.html
 │   └── admin/
 │       ├── dashboard.html
 │       ├── users.html
 │       └── logs.html
 │
 └── static/
-    └── css/
-        └── style.css   # Full UI stylesheet
+    └── css/style.css
 ```
 
 ---
 
-## Security Design
+## Security Notes
 
-### Password Hashing
-Passwords are hashed with **bcrypt** (cost factor 12). bcrypt automatically generates and embeds a unique salt per password, making rainbow-table attacks infeasible.
-
-### Brute-Force Protection
-- After **5 consecutive failed login attempts**, the account is locked for **15 minutes**.
-- The lockout timer is stored in the database, so it survives server restarts.
-- Admins can manually unlock accounts from the admin panel.
-
-### Two-Factor Authentication
-- After correct username/password, a **6-digit numeric OTP** is generated using Python's `secrets` module (cryptographically secure).
-- The OTP is sent to the user's registered email and expires in **10 minutes**.
-- Comparison uses `secrets.compare_digest` to prevent timing attacks.
-
-### Session Security
-- Sessions are server-side (Flask signed cookies with `SECRET_KEY`).
-- The pending 2FA state is stored in the session, not the URL.
-- Sessions expire after 30 minutes of inactivity.
+- Passwords hashed with **bcrypt** (cost 12) — never stored in plain text
+- OTP generated with Python `secrets` module — cryptographically secure
+- OTP comparison uses `secrets.compare_digest` — timing-attack safe
+- Brute-force lockout stored in DB — survives server restarts
+- `SECRET_KEY` and credentials loaded from environment variables — never hardcoded
 
 ---
 
-## Configuration Reference (`config.py`)
+## Configuration Reference
 
-| Setting | Default | Description |
+| Env Variable | Default | Description |
 |---|---|---|
-| `MAX_LOGIN_ATTEMPTS` | 5 | Failed attempts before lockout |
-| `LOCKOUT_DURATION_MINUTES` | 15 | Lockout duration |
-| `OTP_EXPIRY_MINUTES` | 10 | OTP validity window |
-| `OTP_LENGTH` | 6 | OTP digit count |
-| `SECRET_KEY` | (change this) | Flask session signing key |
-
----
-
-## Production Checklist
-
-- [ ] Set a strong random `SECRET_KEY` environment variable
-- [ ] Configure real SMTP credentials (`MAIL_USERNAME`, `MAIL_PASSWORD`)
-- [ ] Switch from SQLite to PostgreSQL (`DATABASE_URL` env var)
-- [ ] Run behind HTTPS (nginx + Let's Encrypt)
-- [ ] Set `debug=False` in `app.py`
-- [ ] Change the default admin password after first login
+| `SECRET_KEY` | (insecure default) | Flask session signing key — **always override in production** |
+| `DATABASE_URL` | SQLite file | Full DB connection string |
+| `MAX_LOGIN_ATTEMPTS` | 5 (in config.py) | Failed attempts before lockout |
+| `LOCKOUT_DURATION_MINUTES` | 15 (in config.py) | Lockout duration |
+| `OTP_EXPIRY_MINUTES` | 10 (in config.py) | OTP validity window |
+| `MAIL_SERVER` | smtp.gmail.com | SMTP server |
+| `MAIL_PORT` | 587 | SMTP port |
+| `MAIL_USERNAME` | — | SMTP username |
+| `MAIL_PASSWORD` | — | SMTP password |

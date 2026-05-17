@@ -3,6 +3,7 @@ Secure Authentication System
 Flask application entry point
 """
 
+import os
 from flask import Flask
 from extensions import db, login_manager, mail
 from config import Config
@@ -13,13 +14,13 @@ from routes.main import main_bp
 
 
 def create_app():
-    app = Flask(__name__)
-    app.config.from_object(Config)
+    application = Flask(__name__)
+    application.config.from_object(Config)
 
     # Initialize extensions
-    db.init_app(app)
-    login_manager.init_app(app)
-    mail.init_app(app)
+    db.init_app(application)
+    login_manager.init_app(application)
+    mail.init_app(application)
 
     login_manager.login_view = "auth.login"
     login_manager.login_message_category = "warning"
@@ -29,17 +30,21 @@ def create_app():
         return User.query.get(int(user_id))
 
     # Register blueprints
-    app.register_blueprint(main_bp)
-    app.register_blueprint(auth_bp, url_prefix="/auth")
-    app.register_blueprint(admin_bp, url_prefix="/admin")
+    application.register_blueprint(main_bp)
+    application.register_blueprint(auth_bp, url_prefix="/auth")
+    application.register_blueprint(admin_bp, url_prefix="/admin")
 
     # Create tables
-    with app.app_context():
+    with application.app_context():
         db.create_all()
 
-    return app
+    return application
 
+
+# Module-level app variable — required by Gunicorn ("gunicorn app:app")
+app = create_app()
 
 if __name__ == "__main__":
-    app = create_app()
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    debug = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
+    app.run(debug=debug, host="0.0.0.0", port=port)

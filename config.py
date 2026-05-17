@@ -10,12 +10,13 @@ class Config:
     # Secret key for sessions and CSRF
     SECRET_KEY = os.environ.get("SECRET_KEY", "change-this-in-production-use-a-long-random-string")
 
-    # Database — SQLite for simplicity; swap URI for PostgreSQL/MySQL in production
+    # Database — SQLite locally; set DATABASE_URL env var on Render for PostgreSQL
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL",
-        f"sqlite:///{os.path.join(BASE_DIR, 'auth_system.db')}"
-    )
+    _db_url = os.environ.get("DATABASE_URL", f"sqlite:///{os.path.join(BASE_DIR, 'auth_system.db')}")
+    # Render (and older Heroku) provide "postgres://" but SQLAlchemy requires "postgresql://"
+    if _db_url.startswith("postgres://"):
+        _db_url = _db_url.replace("postgres://", "postgresql://", 1)
+    SQLALCHEMY_DATABASE_URI = _db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Session lifetime
