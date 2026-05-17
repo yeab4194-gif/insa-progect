@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Register — SecureAuth{% endblock %}
+
+{% block content %}
+<div class="card auth-card">
+  <h2 class="card-title">Create Account</h2>
+
+  <form method="POST" action="{{ url_for('auth.register') }}" id="registerForm" novalidate>
+
+    <div class="form-group">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username"
+             value="{{ username or '' }}"
+             placeholder="At least 3 characters"
+             required autocomplete="username" />
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email Address</label>
+      <input type="email" id="email" name="email"
+             value="{{ email or '' }}"
+             placeholder="you@example.com"
+             required autocomplete="email" />
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password</label>
+      <div class="input-wrapper">
+        <input type="password" id="password" name="password"
+               placeholder="Create a strong password"
+               required autocomplete="new-password"
+               oninput="checkStrength(this.value)" />
+        <button type="button" class="toggle-pw" onclick="togglePassword('password')">👁</button>
+      </div>
+
+      <!-- Strength meter -->
+      <div class="strength-meter" id="strengthMeter">
+        <div class="strength-bar" id="strengthBar"></div>
+      </div>
+      <p class="strength-label" id="strengthLabel"></p>
+
+      <!-- Criteria checklist -->
+      <ul class="criteria-list" id="criteriaList">
+        <li id="c-length">  ✗ At least 8 characters</li>
+        <li id="c-upper">   ✗ Uppercase letter (A-Z)</li>
+        <li id="c-lower">   ✗ Lowercase letter (a-z)</li>
+        <li id="c-digit">   ✗ Number (0-9)</li>
+        <li id="c-special"> ✗ Special character (!@#$…)</li>
+      </ul>
+    </div>
+
+    <div class="form-group">
+      <label for="confirm_password">Confirm Password</label>
+      <div class="input-wrapper">
+        <input type="password" id="confirm_password" name="confirm_password"
+               placeholder="Repeat your password"
+               required autocomplete="new-password" />
+        <button type="button" class="toggle-pw" onclick="togglePassword('confirm_password')">👁</button>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+  </form>
+
+  <p class="auth-link">Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a></p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  async function checkStrength(password) {
+    if (!password) {
+      resetStrength();
+      return;
+    }
+    const res = await fetch("{{ url_for('auth.check_strength_api') }}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password })
+    });
+    const data = await res.json();
+
+    // Update bar
+    const bar = document.getElementById("strengthBar");
+    const label = document.getElementById("strengthLabel");
+    const pct = (data.score / 5) * 100;
+    bar.style.width = pct + "%";
+    const colors = ["#e53e3e","#e53e3e","#dd6b20","#d69e2e","#38a169","#2b6cb0"];
+    bar.style.background = colors[data.score];
+    label.textContent = data.level;
+    label.style.color = colors[data.score];
+
+    // Update criteria
+    const map = {
+      "c-length":  data.criteria.length,
+      "c-upper":   data.criteria.uppercase,
+      "c-lower":   data.criteria.lowercase,
+      "c-digit":   data.criteria.digit,
+      "c-special": data.criteria.special,
+    };
+    const labels = {
+      "c-length":  "At least 8 characters",
+      "c-upper":   "Uppercase letter (A-Z)",
+      "c-lower":   "Lowercase letter (a-z)",
+      "c-digit":   "Number (0-9)",
+      "c-special": "Special character (!@#$…)",
+    };
+    for (const [id, met] of Object.entries(map)) {
+      const el = document.getElementById(id);
+      el.textContent = (met ? "✓ " : "✗ ") + labels[id];
+      el.className = met ? "met" : "";
+    }
+  }
+
+  function resetStrength() {
+    document.getElementById("strengthBar").style.width = "0";
+    document.getElementById("strengthLabel").textContent = "";
+    ["c-length","c-upper","c-lower","c-digit","c-special"].forEach(id => {
+      const el = document.getElementById(id);
+      el.className = "";
+    });
+  }
+
+  function togglePassword(fieldId) {
+    const field = document.getElementById(fieldId);
+    field.type = field.type === "password" ? "text" : "password";
+  }
+</script>
+{% endblock %}

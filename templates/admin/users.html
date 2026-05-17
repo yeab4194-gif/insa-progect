@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Users — Admin — SecureAuth{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+  <div class="page-header">
+    <h1>User Management</h1>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline">← Dashboard</a>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Failed Attempts</th>
+          <th>Locked Until</th>
+          <th>Registered</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users_page.items %}
+        <tr>
+          <td>{{ user.id }}</td>
+          <td>{{ user.username }}</td>
+          <td>{{ user.email }}</td>
+          <td>
+            {% if user.is_admin %}
+              <span class="badge badge-success">Admin</span>
+            {% else %}
+              <span class="badge">User</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if not user.is_active %}
+              <span class="badge badge-danger">Inactive</span>
+            {% elif user.is_locked() %}
+              <span class="badge badge-warning">Locked</span>
+            {% else %}
+              <span class="badge badge-success">Active</span>
+            {% endif %}
+          </td>
+          <td>{{ user.failed_login_attempts }}</td>
+          <td>
+            {% if user.locked_until %}
+              {{ user.locked_until.strftime('%H:%M:%S') }}
+            {% else %}—{% endif %}
+          </td>
+          <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+          <td class="action-cell">
+            {% if user.is_locked() %}
+            <form method="POST" action="{{ url_for('admin.unlock_user', user_id=user.id) }}" style="display:inline;">
+              <button type="submit" class="btn btn-sm btn-success">Unlock</button>
+            </form>
+            {% endif %}
+            <form method="POST" action="{{ url_for('admin.toggle_active', user_id=user.id) }}" style="display:inline;">
+              <button type="submit" class="btn btn-sm {{ 'btn-warning' if user.is_active else 'btn-success' }}">
+                {{ 'Deactivate' if user.is_active else 'Activate' }}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" style="text-align:center;color:#718096;">No users found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if users_page.pages > 1 %}
+  <div class="pagination">
+    {% if users_page.has_prev %}
+      <a href="{{ url_for('admin.users', page=users_page.prev_num) }}" class="btn btn-sm btn-outline">← Prev</a>
+    {% endif %}
+    <span>Page {{ users_page.page }} of {{ users_page.pages }}</span>
+    {% if users_page.has_next %}
+      <a href="{{ url_for('admin.users', page=users_page.next_num) }}" class="btn btn-sm btn-outline">Next →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

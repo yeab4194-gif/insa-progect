@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — SecureAuth{% endblock %}
+
+{% block content %}
+<div class="card center-card">
+  <div class="card-icon">✅</div>
+  <h1>Welcome, {{ user.username }}!</h1>
+  <p class="subtitle">You are securely logged in.</p>
+
+  <div class="info-grid">
+    <div class="info-item">
+      <span class="info-label">Email</span>
+      <span class="info-value">{{ user.email }}</span>
+    </div>
+    <div class="info-item">
+      <span class="info-label">Account created</span>
+      <span class="info-value">{{ user.created_at.strftime('%Y-%m-%d') }}</span>
+    </div>
+    <div class="info-item">
+      <span class="info-label">Role</span>
+      <span class="info-value">{{ 'Administrator' if user.is_admin else 'User' }}</span>
+    </div>
+    <div class="info-item">
+      <span class="info-label">2FA</span>
+      <span class="info-value badge badge-success">Enabled (OTP)</span>
+    </div>
+  </div>
+
+  {% if user.is_admin %}
+  <div style="margin-top:24px;">
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-primary">Go to Admin Panel</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

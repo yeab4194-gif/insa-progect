@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Verify OTP — SecureAuth{% endblock %}
+
+{% block content %}
+<div class="card auth-card">
+  <div class="card-icon">📧</div>
+  <h2 class="card-title">Two-Factor Authentication</h2>
+  <p class="subtitle">Enter the 6-digit code sent to <strong>{{ email }}</strong></p>
+
+  <form method="POST" action="{{ url_for('auth.verify_otp_view') }}" novalidate>
+    <div class="form-group">
+      <label for="otp">One-Time Password</label>
+      <input type="text" id="otp" name="otp"
+             placeholder="000000"
+             maxlength="6"
+             pattern="\d{6}"
+             inputmode="numeric"
+             autocomplete="one-time-code"
+             required
+             style="font-size:2rem;letter-spacing:12px;text-align:center;" />
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-full">Verify OTP</button>
+  </form>
+
+  <form method="POST" action="{{ url_for('auth.resend_otp') }}" style="margin-top:12px;">
+    <button type="submit" class="btn btn-outline btn-full">Resend OTP</button>
+  </form>
+
+  <p class="auth-link" style="margin-top:16px;">
+    <a href="{{ url_for('auth.login') }}">← Back to login</a>
+  </p>
+</div>
+{% endblock %}

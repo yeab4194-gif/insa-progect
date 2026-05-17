@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — SecureAuth{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+  <h1>Admin Dashboard</h1>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-number">{{ total_users }}</div>
+      <div class="stat-label">Total Users</div>
+    </div>
+    <div class="stat-card stat-warning">
+      <div class="stat-number">{{ locked_users }}</div>
+      <div class="stat-label">Locked Accounts</div>
+    </div>
+    <div class="stat-card stat-info">
+      <div class="stat-number">{{ total_logs }}</div>
+      <div class="stat-label">Security Events</div>
+    </div>
+  </div>
+
+  <!-- Quick links -->
+  <div class="admin-nav">
+    <a href="{{ url_for('admin.users') }}" class="btn btn-primary">👥 Manage Users</a>
+    <a href="{{ url_for('admin.logs') }}" class="btn btn-outline">📋 View All Logs</a>
+  </div>
+
+  <!-- Recent events -->
+  <h2 style="margin-top:32px;">Recent Security Events</h2>
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Time (UTC)</th>
+          <th>Event</th>
+          <th>Username</th>
+          <th>IP Address</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in recent_logs %}
+        <tr>
+          <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+          <td><span class="badge badge-{{ log.event_type | lower }}">{{ log.event_type }}</span></td>
+          <td>{{ log.username_attempted }}</td>
+          <td>{{ log.ip_address or '—' }}</td>
+          <td>{{ log.details or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" style="text-align:center;color:#718096;">No events yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
